@@ -13,7 +13,7 @@ const JobList = () => {
 
   const fetchJobs = async () => {
     try {
-      const res = await axios.get("http://localhost:6900/api/jobs");
+      const res = await axios.get("https://hirepilot-qskd.onrender.com/api/jobs");
       setJobs(res.data);
     } catch (err) {
       console.error(err);
