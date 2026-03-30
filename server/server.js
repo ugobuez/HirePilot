@@ -3,7 +3,6 @@ import cors from "cors";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
 
-
 import aiRoutes from "./routes/aiRoutes.js";
 import jobRoutes from "./routes/jobRoutes.js";
 import applicationRoutes from "./routes/applicationRoutes.js";
@@ -12,27 +11,32 @@ dotenv.config();
 
 const app = express();
 
-app.use(cors({ origin: "http://localhost:3000", methods: ["GET", "POST"] }));
+// ✅ CORS setup
+app.use(cors({
+  origin: [
+    "https://hire-pilot-job.vercel.app",
+    "http://localhost:3000"
+  ],
+  methods: ["GET", "POST"],
+  credentials: true
+}));
+
 app.use(express.json());
 
-// API routes
+// ✅ API routes
 app.use("/api", aiRoutes);
 app.use("/api/jobs", jobRoutes);
 app.use("/api/applications", applicationRoutes);
 
-const connectDB = async () => {
-  try {
-    const conn = await mongoose.connect(process.env.MONGO_URI);
-    console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
-  } catch (error) {
-    console.error(`❌ MongoDB Connection Error: ${error.message}`);
-    process.exit(1); // Stop the server if DB fails
-  }
-};
+// ✅ MongoDB connection 
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log("MongoDB connected ✅"))
+  .catch((err) => console.error("MongoDB error ❌", err));
 
-// Call the connection
-connectDB();
+// ❌ REMOVED: connectDB(); (this was causing your crash)
 
 const PORT = process.env.PORT || 6900;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
 
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+});
