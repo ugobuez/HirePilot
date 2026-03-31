@@ -42,7 +42,7 @@ const JobList = () => {
   const fetchJobs = async (pageNum) => {
     try {
       setLoading(true);
-      const res = await axios.get(`http://localhost:6900/api/jobs?page=${pageNum}`);
+      const res = await axios.get(`https://hirepilot-qskd.onrender.com/api/jobs?page=${pageNum}`);
       const fetchedJobs = Array.isArray(res.data.jobs) ? res.data.jobs : [];
       setJobs((prev) => (pageNum === 1 ? fetchedJobs : [...prev, ...fetchedJobs]));
       setHasMore(!!res.data.hasMore);
