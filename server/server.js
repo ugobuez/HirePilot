@@ -15,7 +15,8 @@ const app = express();
 app.use(cors({
   origin: [
     "https://hire-pilot-job.vercel.app",
-    "http://localhost:3000"
+    "http://localhost:3000",
+    "https://hirepilot-qskd.onrender.com"
   ],
   methods: ["GET", "POST"],
   credentials: true
@@ -27,6 +28,10 @@ app.use(express.json());
 app.use("/api", aiRoutes);
 app.use("/api/jobs", jobRoutes);
 app.use("/api/applications", applicationRoutes);
+
+app.get("/", (req, res) => {
+  res.send("HirePilot Server is running...");
+});
 
 // ✅ MongoDB connection 
 mongoose.connect(process.env.MONGO_URI)

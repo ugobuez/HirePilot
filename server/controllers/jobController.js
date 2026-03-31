@@ -1,29 +1,19 @@
+// controllers/jobController.js
 import { scrapeJobs } from "../services/scraperService.js";
 
 export const getJobs = async (req, res) => {
   try {
-    const jobs = await scrapeJobs();
-    res.json(jobs);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Failed to fetch jobs" });
-  }
-};
+    const page = parseInt(req.query.page) || 1;
+    const pageSize = 10; // number of jobs per page
 
+    const allJobs = await scrapeJobs();
 
-export const updateApplicationStatus = async (req, res) => {
-  try {
-    const { status } = req.body;
+    const paginatedJobs = allJobs.slice((page - 1) * pageSize, page * pageSize);
+    const hasMore = page * pageSize < allJobs.length;
 
-    const updated = await Application.findByIdAndUpdate(
-      req.params.id,
-      { status },
-      { new: true }
-    );
-
-    res.json(updated);
-  } catch (err) {
-    console.error("❌ Update error:", err.message);
-    res.status(500).json({ error: "Failed to update status" });
+    res.status(200).json({ jobs: paginatedJobs, hasMore });
+  } catch (error) {
+    console.error("❌ Failed to fetch jobs:", error.message);
+    res.status(500).json({ message: "Failed to fetch jobs" });
   }
 };
