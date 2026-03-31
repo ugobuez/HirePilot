@@ -12,6 +12,13 @@ const app = express();
 
 app.use(cors({ origin: "*" }));
 
+app.use(cors({
+  origin: ['http://localhost:3000', 'https://hire-pilot-job.vercel.app', 'https://hirepilot-qskd.onrender.com'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-api-key'],
+}));
+
 app.use(express.json());
 
 // ✅ API routes
@@ -32,7 +39,7 @@ mongoose.connect(process.env.MONGO_URI)
 const PORT = process.env.PORT || 6900;
 
 app.listen(PORT, () => {
-  ;
+  
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`🌍 URL: http://localhost:${PORT}`);
   ;

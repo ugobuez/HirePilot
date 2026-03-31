@@ -23,7 +23,7 @@ function JobForm({ setResult }) {
       formData.append("resume", resume);
       formData.append("jobDesc", jobDesc);
 
-      const res = await axios.post("https://hirepilot-qskd.onrender.com/api/analyze", formData);
+      const res = await axios.post("http://localhost:6900/api/analyze", formData);
       setResult(res.data);
     } catch (err) {
       setError("Analysis failed. Please check your connection.");

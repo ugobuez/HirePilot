@@ -6,7 +6,7 @@ export const analyzeJob = async (req, res) => {
 
     const openai = new OpenAI({
       apiKey: process.env.FIREWORKS_API_KEY,
-      baseURL: "https://api.fireworks.ai/inference/v1",
+      baseURL: "https://api.fireworks.ai/inference/v1/chat/completions",
     });
 
     const { jobDesc } = req.body;
@@ -18,8 +18,8 @@ export const analyzeJob = async (req, res) => {
     const prompt = `Analyze this job. Return ONLY JSON: {"matchScore": number, "missingSkills": [], "coverLetter": ""}. \nJob: ${jobDesc}`;
 
     const response = await openai.chat.completions.create({
-      // FIXED: Using the standard Fireworks serverless IDs
-      model: "accounts/fireworks/models/llama-v3p1-8b-instruct", 
+      
+      model: "accounts/fireworks/models/llama-v3p3-70b-instruct", 
       messages: [
         { role: "system", content: "You are a career assistant. Response must be strictly JSON." },
         { role: "user", content: prompt },
