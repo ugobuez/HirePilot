@@ -10,10 +10,10 @@ dotenv.config();
 
 const app = express();
 
-// ✅ FIXED CORS CONFIGURATION
+// ✅ UPDATED CORS LOGIC
 const allowedOrigins = [
-  'http://localhost:3000', 
   'https://hire-pilot-job.vercel.app', 
+  'http://localhost:3000', 
   'https://hirepilot-qskd.onrender.com'
 ];
 
@@ -21,8 +21,9 @@ app.use(cors({
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps or curl)
     if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
+    
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true); // Dynamically allow the origin
     } else {
       callback(new Error('Not allowed by CORS'));
     }
@@ -30,11 +31,12 @@ app.use(cors({
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-api-key'],
+  optionsSuccessStatus: 200 
 }));
 
 app.use(express.json());
 
-// ✅ API routes
+// API routes
 app.use("/api", aiRoutes);
 app.use("/api/jobs", jobRoutes);
 app.use("/api/applications", applicationRoutes);

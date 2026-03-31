@@ -39,16 +39,18 @@ const JobList = () => {
   const [skillFilter, setSkillFilter] = useState("");
   const [selectedJobs, setSelectedJobs] = useState([]);
 
+  // ✅ FIXED: Added withCredentials to match backend CORS policy
   const fetchJobs = async (pageNum) => {
     try {
       setLoading(true);
-      const res = await axios.get(`https://hirepilot-qskd.onrender.com/api/jobs?page=${pageNum}`);
+      const res = await axios.get(`https://hirepilot-qskd.onrender.com/api/jobs?page=${pageNum}`, {
+        withCredentials: true
+      });
       const fetchedJobs = Array.isArray(res.data.jobs) ? res.data.jobs : [];
       setJobs((prev) => (pageNum === 1 ? fetchedJobs : [...prev, ...fetchedJobs]));
       setHasMore(!!res.data.hasMore);
     } catch (err) {
-      console.error(err);
-     
+      console.error("Fetch Error:", err);
       setHasMore(false);
     } finally {
       setLoading(false);
@@ -113,7 +115,7 @@ const JobList = () => {
               className="form-control pro-input ps-5"
               placeholder="Job title, keywords, or company"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => setSearch(e.value)}
             />
           </div>
           <div className="col-md-6 position-relative">
@@ -131,12 +133,12 @@ const JobList = () => {
       {/* 💼 JOB GRID */}
       <div className="row g-4">
         {filteredJobs.map((job) => (
-          <motion.div key={job.id} className="col-12 col-xl-6" layout>
-            <div className={`pro-job-card p-4 rounded-4 transition-all ${selectedJobs.some(j => j.id === job.id) ? 'selected' : ''}`}>
+          <motion.div key={job.id || job._id} className="col-12 col-xl-6" layout>
+            <div className={`pro-job-card p-4 rounded-4 transition-all ${selectedJobs.some(j => (j.id || j._id) === (job.id || job._id)) ? 'selected' : ''}`}>
               <div className="d-flex justify-content-between align-items-start mb-3">
                 <div className="d-flex gap-3 align-items-center">
                   <div className="selection-wrapper" onClick={() => toggleSelectJob(job)}>
-                    {selectedJobs.some(j => j.id === job.id) ? 
+                    {selectedJobs.some(j => (j.id || j._id) === (job.id || job._id)) ? 
                       <CheckCircle2 className="text-indigo" size={24} /> : 
                       <div className="unselected-circle"></div>
                     }
@@ -148,7 +150,7 @@ const JobList = () => {
                 </div>
                 <div className={`match-pill ${job.matchScore >= 80 ? 'match-high' : 'match-med'}`}>
                   <Zap size={12} className="me-1 fill-current" />
-                  {job.matchScore}% Match
+                  {job.matchScore || 0}% Match
                 </div>
               </div>
 
