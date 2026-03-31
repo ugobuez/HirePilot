@@ -1,7 +1,7 @@
 import express from "express";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
-
+import cors from "cors";
 import aiRoutes from "./routes/aiRoutes.js";
 import jobRoutes from "./routes/jobRoutes.js";
 import applicationRoutes from "./routes/applicationRoutes.js";
@@ -10,26 +10,7 @@ dotenv.config();
 
 const app = express();
 
-// ✅ CORS middleware
-const allowedOrigins = [
-  "https://hire-pilot-job.vercel.app",
-  "http://localhost:3000",
-  "https://hirepilot-qskd.onrender.com"
-];
-
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  if (allowedOrigins.includes(origin)) {
-    res.setHeader("Access-Control-Allow-Origin", origin);
-  }
-  res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type,Authorization");
-  res.setHeader("Access-Control-Allow-Credentials", "true");
-  if (req.method === "OPTIONS") {
-    return res.sendStatus(200);
-  }
-  next();
-});
+app.use(cors({ origin: "*" }));
 
 app.use(express.json());
 
@@ -51,8 +32,8 @@ mongoose.connect(process.env.MONGO_URI)
 const PORT = process.env.PORT || 6900;
 
 app.listen(PORT, () => {
-  console.log("=================================");
+  ;
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`🌍 URL: http://localhost:${PORT}`);
-  console.log("=================================");
+  ;
 });
