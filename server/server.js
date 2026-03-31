@@ -11,16 +11,28 @@ dotenv.config();
 
 const app = express();
 
-// ✅ CORS setup
+// ✅ Allowed origins
+const allowedOrigins = [
+  "https://hire-pilot-job.vercel.app",
+  "http://localhost:3000",
+  "https://hirepilot-qskd.onrender.com"
+];
+
+// ✅ FIXED CORS setup
 app.use(cors({
-  origin: [
-    "https://hire-pilot-job.vercel.app",
-    "http://localhost:3000",
-    "https://hirepilot-qskd.onrender.com"
-  ],
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("❌ Not allowed by CORS"));
+    }
+  },
   methods: ["GET", "POST"],
   credentials: true
 }));
+
+// ✅ Handle preflight requests
+app.options("*", cors());
 
 app.use(express.json());
 
@@ -29,19 +41,21 @@ app.use("/api", aiRoutes);
 app.use("/api/jobs", jobRoutes);
 app.use("/api/applications", applicationRoutes);
 
+// ✅ Test route
 app.get("/", (req, res) => {
-  res.send("HirePilot Server is running...");
+  res.send("✅ HirePilot Server is running...");
 });
 
-// ✅ MongoDB connection 
+// ✅ MongoDB connection
 mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log("MongoDB connected ✅"))
-  .catch((err) => console.error("MongoDB error ❌", err));
-
-// ❌ REMOVED: connectDB(); (this was causing your crash)
+  .then(() => console.log("✅ MongoDB connected successfully"))
+  .catch((err) => console.error("❌ MongoDB Connection Error:", err.message));
 
 const PORT = process.env.PORT || 6900;
 
 app.listen(PORT, () => {
+  console.log("=================================");
   console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`🌍 URL: http://localhost:${PORT}`);
+  console.log("=================================");
 });
