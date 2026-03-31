@@ -48,7 +48,7 @@ const JobList = () => {
       setHasMore(!!res.data.hasMore);
     } catch (err) {
       console.error(err);
-      setJobs([]);
+     
       setHasMore(false);
     } finally {
       setLoading(false);
