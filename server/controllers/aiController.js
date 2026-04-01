@@ -7,17 +7,30 @@ export const analyzeJob = async (req, res) => {
   try {
     console.log("✅ Request received");
 
-    if (!req.file)
+    // ✅ Validate inputs
+    if (!req.file) {
       return res.status(400).json({ error: "Resume file is required" });
+    }
 
     const { jobDesc } = req.body;
-    if (!jobDesc)
+    if (!jobDesc) {
       return res.status(400).json({ error: "Job description is required" });
+    }
 
-    // Send resume buffer to CVParse
+    console.log("📁 FILE:", {
+      name: req.file.originalname,
+      type: req.file.mimetype,
+      size: req.file.size,
+    });
+
+    // ✅ Build FormData properly (IMPORTANT FIX)
     const formData = new FormData();
-    formData.append("file", req.file.buffer, req.file.originalname);
+    formData.append("file", req.file.buffer, {
+      filename: req.file.originalname,
+      contentType: req.file.mimetype,
+    });
 
+    // ✅ Send to CVParse with proper config
     const cvParseResp = await axios.post(
       "https://api.cvparse.io/api/v1/parse",
       formData,
@@ -26,12 +39,14 @@ export const analyzeJob = async (req, res) => {
           ...formData.getHeaders(),
           "X-API-Key": process.env.CVPARSE_API_KEY,
         },
+        maxContentLength: Infinity,
+        maxBodyLength: Infinity,
       }
     );
 
-    const parsedResume = cvParseResp.data; // structured JSON
+    const parsedResume = cvParseResp.data;
 
-    // AI prompt
+    // ✅ AI Prompt
     const prompt = `
 You are a professional career assistant.
 
@@ -45,7 +60,12 @@ Tasks:
 1. Generate a professional, ATS-friendly cover letter tailored to this resume
 2. Provide a matchScore (0-100) and missingSkills list
 
-Return STRICTLY JSON ONLY with fields: {coverLetter: "...", matchScore: 0-100, missingSkills: []}
+Return STRICTLY JSON ONLY with fields:
+{
+  "coverLetter": "...",
+  "matchScore": 0-100,
+  "missingSkills": []
+}
 `;
 
     const openai = new OpenAI({
@@ -56,25 +76,39 @@ Return STRICTLY JSON ONLY with fields: {coverLetter: "...", matchScore: 0-100, m
     const response = await openai.chat.completions.create({
       model: "accounts/fireworks/models/llama-v3p3-70b-instruct",
       messages: [
-        { role: "system", content: "You are a career assistant. Always respond with strict JSON." },
+        {
+          role: "system",
+          content: "You are a career assistant. Always respond with strict JSON.",
+        },
         { role: "user", content: prompt },
       ],
       temperature: 0.1,
     });
 
     const aiText = response.choices[0].message.content;
+
+    // ✅ Safe JSON extraction
     const jsonMatch = aiText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      console.error("❌ RAW AI RESPONSE:", aiText);
+      throw new Error("Invalid AI response format");
+    }
 
-    if (!jsonMatch) throw new Error("Invalid AI response format");
+    const parsedAI = JSON.parse(jsonMatch[0]);
 
+    // ✅ Final response
     res.json({
       parsedResume,
-      ...JSON.parse(jsonMatch[0]),
+      ...parsedAI,
     });
 
   } catch (err) {
-    console.error("❌ ANALYZE ERROR:", err.response?.data || err.message);
-    res.status(err.status || 500).json({
+    console.error("❌ ANALYZE ERROR FULL:", {
+      message: err.message,
+      response: err.response?.data,
+    });
+
+    res.status(err.response?.status || 500).json({
       error: "AI Analysis failed",
       details: err.response?.data || err.message,
     });
