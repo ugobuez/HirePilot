@@ -1,23 +1,18 @@
+// server/middleware/upload.js
 import multer from "multer";
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, "uploads/"),
-  filename: (req, file, cb) => cb(null, file.originalname), // preserve extension
-});
+// Store files in memory for serverless environments
+const storage = multer.memoryStorage();
 
 export const upload = multer({
   storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB max
   fileFilter: (req, file, cb) => {
     const allowedTypes = [
       "application/pdf",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // docx
-      "application/msword", // doc
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/msword",
       "application/rtf",
-      "image/jpeg",
-      "image/png",
-      "image/tiff",
-      "image/bmp",
-      "image/webp",
     ];
     if (allowedTypes.includes(file.mimetype)) cb(null, true);
     else cb(new Error("File type not allowed"));
