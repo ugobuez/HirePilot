@@ -95,7 +95,7 @@ function JobForm() {
       {result && (
         <Card className="mx-auto mt-4 shadow-sm" style={{ maxWidth: "800px", borderRadius: "20px" }}>
           <Card.Body>
-            <h5 className="mb-3">✅ Analysis Result</h5>
+            <h5 className="mb-3">✅ Analyse Result</h5>
             <p><strong>Match Score:</strong> {result.matchScore}/100</p>
             <p><strong>Missing Skills:</strong> {result.missingSkills.length > 0 
               ? result.missingSkills.map((s, i) => <Badge bg="warning" key={i} className="me-1">{s}</Badge>) 
