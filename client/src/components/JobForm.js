@@ -8,7 +8,9 @@ function JobForm() {
   const [resume, setResume] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [result, setResult] = useState(null); // store backend result
+  const [result, setResult] = useState(null);
+
+  const API_URL = process.env.REACT_APP_API_URL || "http://localhost:6900"; // use env for hosting
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -23,10 +25,15 @@ function JobForm() {
       setResult(null);
 
       const formData = new FormData();
-      formData.append("resume", resume);  
+      formData.append("resume", resume); // must match multer field
       formData.append("jobDesc", jobDesc);
 
-      const res = await axios.post("https://hirepilot-qskd.onrender.com/api/analyze", formData);
+      const res = await axios.post(`${API_URL}/api/analyze`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
       setResult(res.data);
     } catch (err) {
       setError(err.response?.data?.error || "Analysis failed. Please check your connection.");
@@ -43,7 +50,7 @@ function JobForm() {
           
           <Form onSubmit={handleSubmit}>
             <div className="row g-4">
-              {/* Resume Side */}
+              {/* Resume Upload */}
               <div className="col-md-5">
                 <label className="fw-bold text-dark small mb-3 d-block text-uppercase">1. Resume Profile</label>
                 <div className="upload-zone p-4 text-center border-dashed rounded-4 bg-light position-relative">
@@ -59,7 +66,7 @@ function JobForm() {
                 </div>
               </div>
 
-              {/* Job Desc Side */}
+              {/* Job Description */}
               <div className="col-md-7 text-start">
                 <label className="fw-bold text-dark small mb-3 d-block text-uppercase">2. Target Description</label>
                 <div className="position-relative">
@@ -91,11 +98,11 @@ function JobForm() {
         </Card.Body>
       </Card>
 
-      {/* Display results */}
+      {/* Result Display */}
       {result && (
         <Card className="mx-auto mt-4 shadow-sm" style={{ maxWidth: "800px", borderRadius: "20px" }}>
           <Card.Body>
-            <h5 className="mb-3">✅ Analyse Result</h5>
+            <h5 className="mb-3">✅ Analysis Result</h5>
             <p><strong>Match Score:</strong> {result.matchScore}/100</p>
             <p><strong>Missing Skills:</strong> {result.missingSkills.length > 0 
               ? result.missingSkills.map((s, i) => <Badge bg="warning" key={i} className="me-1">{s}</Badge>) 
