@@ -1,7 +1,4 @@
 // server/controllers/aiController.js
-import fs from "fs";
-import { createRequire } from "module";
-const require = createRequire(import.meta.url);
 import axios from "axios";
 import OpenAI from "openai";
 import FormData from "form-data";
@@ -17,9 +14,9 @@ export const analyzeJob = async (req, res) => {
     if (!jobDesc)
       return res.status(400).json({ error: "Job description is required" });
 
-    // ✅ Send resume to CVParse
+    // Send resume buffer to CVParse
     const formData = new FormData();
-    formData.append("file", fs.createReadStream(req.file.path), req.file.originalname);
+    formData.append("file", req.file.buffer, req.file.originalname);
 
     const cvParseResp = await axios.post(
       "https://api.cvparse.io/api/v1/parse",
@@ -34,7 +31,7 @@ export const analyzeJob = async (req, res) => {
 
     const parsedResume = cvParseResp.data; // structured JSON
 
-    // ✅ AI prompt for cover letter & match score
+    // AI prompt
     const prompt = `
 You are a professional career assistant.
 
@@ -70,9 +67,6 @@ Return STRICTLY JSON ONLY with fields: {coverLetter: "...", matchScore: 0-100, m
 
     if (!jsonMatch) throw new Error("Invalid AI response format");
 
-    // ✅ Clean up uploaded file
-    fs.unlinkSync(req.file.path);
-
     res.json({
       parsedResume,
       ...JSON.parse(jsonMatch[0]),
@@ -80,7 +74,6 @@ Return STRICTLY JSON ONLY with fields: {coverLetter: "...", matchScore: 0-100, m
 
   } catch (err) {
     console.error("❌ ANALYZE ERROR:", err.response?.data || err.message);
-    if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
     res.status(err.status || 500).json({
       error: "AI Analysis failed",
       details: err.response?.data || err.message,

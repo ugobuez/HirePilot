@@ -10,7 +10,7 @@ function JobForm() {
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
 
-  const API_URL = process.env.REACT_APP_API_URL || "http://localhost:6900"; // use env for hosting
+  const API_URL = process.env.REACT_APP_API_URL || "http://localhost:6900";
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -25,7 +25,7 @@ function JobForm() {
       setResult(null);
 
       const formData = new FormData();
-      formData.append("resume", resume); // must match multer field
+      formData.append("resume", resume); // must match multer.single("resume")
       formData.append("jobDesc", jobDesc);
 
       const res = await axios.post(`${API_URL}/api/analyze`, formData, {
