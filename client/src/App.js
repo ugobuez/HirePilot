@@ -4,7 +4,7 @@ import ResultCard from "./components/ResultCard";
 import JobList from "./components/JobList";
 import { Layout, Globe, Zap } from "lucide-react";
 import "bootstrap/dist/css/bootstrap.min.css";
-
+import ApplicationList from "./components/ApplicationList";
 function App() {
   const [result, setResult] = useState(null);
 
@@ -19,6 +19,7 @@ function App() {
             Hire<span className="text-dark">Pilot</span>
           </a>
           <div className="ms-auto d-flex align-items-center gap-3">
+            <p className="text-muted">AI Powered Job Search</p>
             <button className="btn btn-dark btn-sm rounded-pill px-4 fw-semibold shadow-sm btn-gradient-dark">Dashboard</button>
           </div>
         </div>
@@ -28,6 +29,7 @@ function App() {
 
       {/* --- MAIN CONTENT --- */}
       <main className="container py-5">
+    
         {/* Analysis Results */}
         {result && (
           <div className="mb-5 animate__animated animate__fadeIn">
@@ -69,7 +71,7 @@ function App() {
       </header>
         </section>
       </main>
-
+    <ApplicationList/>
       <style>{`
         /* 1. Body animated gradient background */
         .app-main-container {
