@@ -115,7 +115,7 @@ const JobList = () => {
               className="form-control pro-input ps-5"
               placeholder="Job title, keywords, or company"
               value={search}
-              onChange={(e) => setSearch(e.value)}
+            onChange={(e) => setSearch(e.target.value)}
             />
           </div>
           <div className="col-md-6 position-relative">

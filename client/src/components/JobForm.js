@@ -28,7 +28,7 @@ function JobForm() {
       formData.append("jobDesc", jobDesc);
 
       const res = await axios.post(
-        "https://hirepilot-qskd.onrender.com/api/analyze",
+        "http://localhost:6900/api/analyze",
         formData
       );
 
