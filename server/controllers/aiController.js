@@ -37,7 +37,7 @@ export const analyzeJob = async (req, res) => {
       {
         headers: {
           ...formData.getHeaders(),
-          "X-API-Key": process.env.CVPARSE_API_KEY || "cvp_4IxDi_Ughi1H5jm-VUvirOK-P8q4JAFpDmhuZYC_Zag",
+          "X-API-Key": process.env.CVPARSE_API_KEY,
         },
         maxContentLength: Infinity,
         maxBodyLength: Infinity,
@@ -69,7 +69,7 @@ Return STRICTLY JSON ONLY with fields:
 `;
 
     const openai = new OpenAI({
-      apiKey: process.env.FIREWORKS_API_KEY || "fw_HZiscUDs1A4r2e9Y6T9eHx",
+      apiKey: process.env.FIREWORKS_API_KEY,
       baseURL: "https://api.fireworks.ai/inference/v1",
     });
 
