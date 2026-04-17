@@ -5,6 +5,7 @@ import JobList from "./components/JobList";
 import { Layout, Globe, Zap } from "lucide-react";
 import "bootstrap/dist/css/bootstrap.min.css";
 import ApplicationList from "./components/ApplicationList";
+// import JobMatcher from "./components/JobMatcher";
 function App() {
   const [result, setResult] = useState(null);
 
@@ -29,6 +30,7 @@ function App() {
 
       {/* --- MAIN CONTENT --- */}
       <main className="container py-5">
+        {/* <JobMatcher/> */}
     
         {/* Analysis Results */}
         {result && (

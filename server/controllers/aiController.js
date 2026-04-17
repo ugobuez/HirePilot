@@ -1,13 +1,10 @@
-// server/controllers/aiController.js
-import axios from "axios";
 import OpenAI from "openai";
-import FormData from "form-data";
+import { extractResumeText } from "../middleware/upload.js";
 
 export const analyzeJob = async (req, res) => {
   try {
     console.log("✅ Request received");
 
-    // ✅ Validate inputs
     if (!req.file) {
       return res.status(400).json({ error: "Resume file is required" });
     }
@@ -22,36 +19,19 @@ export const analyzeJob = async (req, res) => {
       type: req.file.mimetype,
       size: req.file.size,
     });
+    console.log("HEADERS:", req.headers["content-type"]);
+console.log("FILE:", req.file);
+console.log("FILES:", req.files);
 
-    // ✅ Build FormData properly (IMPORTANT FIX)
-    const formData = new FormData();
-    formData.append("file", req.file.buffer, {
-      filename: req.file.originalname,
-      contentType: req.file.mimetype,
-    });
+    // ✅ Extract resume text locally (no CVParse API needed)
+    const resumeText = await extractResumeText(req.file);
+    console.log("📄 Resume text extracted, length:", resumeText.length);
 
-    // ✅ Send to CVParse with proper config
-    const cvParseResp = await axios.post(
-      "https://api.cvparse.io/api/v1/parse",
-      formData,
-      {
-        headers: {
-          ...formData.getHeaders(),
-          "X-API-Key": process.env.CVPARSE_API_KEY,
-        },
-        maxContentLength: Infinity,
-        maxBodyLength: Infinity,
-      }
-    );
-
-    const parsedResume = cvParseResp.data;
-
-    // ✅ AI Prompt
     const prompt = `
 You are a professional career assistant.
 
-Resume JSON:
-${JSON.stringify(parsedResume)}
+Resume:
+${resumeText}
 
 Job Description:
 ${jobDesc}
@@ -87,7 +67,6 @@ Return STRICTLY JSON ONLY with fields:
 
     const aiText = response.choices[0].message.content;
 
-    // ✅ Safe JSON extraction
     const jsonMatch = aiText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       console.error("❌ RAW AI RESPONSE:", aiText);
@@ -96,14 +75,13 @@ Return STRICTLY JSON ONLY with fields:
 
     const parsedAI = JSON.parse(jsonMatch[0]);
 
-    // ✅ Final response
     res.json({
-      parsedResume,
+      resumeText,   // raw extracted text (useful for debugging)
       ...parsedAI,
     });
 
   } catch (err) {
-    console.error("❌ ANALYZE ERROR FULL:", {
+    console.error("❌ ANALYZE ERROR:", {
       message: err.message,
       response: err.response?.data,
     });
