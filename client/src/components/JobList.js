@@ -39,11 +39,12 @@ const JobList = () => {
   const [skillFilter, setSkillFilter] = useState("");
   const [selectedJobs, setSelectedJobs] = useState([]);
 
-  // ✅ FIXED: Added withCredentials to match backend CORS policy
+  // ✅ Uses the configured API base (local by default, overridable via REACT_APP_API_URL)
+  const API_BASE = process.env.REACT_APP_API_URL || "http://localhost:6900";
   const fetchJobs = async (pageNum) => {
     try {
       setLoading(true);
-      const res = await axios.get(`https://hirepilot-qskd.onrender.com/api/jobs?page=${pageNum}`, {
+      const res = await axios.get(`${API_BASE}/api/jobs?page=${pageNum}`, {
         withCredentials: true
       });
       const fetchedJobs = Array.isArray(res.data.jobs) ? res.data.jobs : [];

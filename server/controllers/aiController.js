@@ -1,10 +1,51 @@
-import OpenAI from "openai";
 import { extractResumeText } from "../middleware/upload.js";
+import { openRouterCompletion } from "../middleware/services/openRouterService.js";
+import { scanJobDescription } from "../middleware/services/jobscanService.js";
+
+const TECH_KEYWORDS = [
+  "javascript", "typescript", "python", "java", "c#", "c++", "go", "rust",
+  "react", "angular", "vue", "node.js", "express", "django", "flask", "spring",
+  "docker", "kubernetes", "aws", "azure", "gcp", "terraform", "jenkins",
+  "sql", "postgresql", "mongodb", "redis", "graphql", "rest", "html", "css",
+  "tailwind", "redux", "webpack", "git", "ci/cd", "linux", "php", "ruby",
+];
+
+const extractSkillsFromText = (text) => {
+  const lower = text.toLowerCase();
+  return [...new Set(TECH_KEYWORDS.filter((k) => lower.includes(k)))];
+};
+
+const fallbackCoverLetter = (resumeText, matched = []) => {
+  const skills = matched.length ? matched.join(", ") : "my technical skills";
+  return [
+    "Dear Hiring Team,",
+    "",
+    "I am excited to apply for this position. My background aligns closely with your requirements, particularly " +
+      skills +
+      ". I have included my resume for your review and would welcome the opportunity to discuss how I can contribute to your team.",
+    "",
+    "Thank you for your time and consideration.",
+    "",
+    "Sincerely,",
+    "[Your Name]",
+  ].join("\n");
+};
+
+const generateCoverLetter = async (resumeText, jobDesc, matched = []) => {
+  try {
+    const systemPrompt =
+      "You are a professional career coach. Write a concise, ATS-friendly 3-paragraph cover letter tailored to the candidate's resume and the job description. Return plain text only.";
+    const userPrompt = `RESUME:\n${resumeText}\n\nJOB DESCRIPTION:\n${jobDesc}`;
+    const out = await openRouterCompletion(systemPrompt, userPrompt, 0.3);
+    if (out && out.trim().length > 40) return out.trim();
+    throw new Error("Empty cover letter");
+  } catch {
+    return fallbackCoverLetter(resumeText, matched);
+  }
+};
 
 export const analyzeJob = async (req, res) => {
   try {
-    console.log("✅ Request received");
-
     if (!req.file) {
       return res.status(400).json({ error: "Resume file is required" });
     }
@@ -14,81 +55,31 @@ export const analyzeJob = async (req, res) => {
       return res.status(400).json({ error: "Job description is required" });
     }
 
-    console.log("📁 FILE:", {
-      name: req.file.originalname,
-      type: req.file.mimetype,
-      size: req.file.size,
-    });
-    console.log("HEADERS:", req.headers["content-type"]);
-console.log("FILE:", req.file);
-console.log("FILES:", req.files);
-
-    // ✅ Extract resume text locally (no CVParse API needed)
     const resumeText = await extractResumeText(req.file);
-    console.log("📄 Resume text extracted, length:", resumeText.length);
-
-    const prompt = `
-You are a professional career assistant.
-
-Resume:
-${resumeText}
-
-Job Description:
-${jobDesc}
-
-Tasks:
-1. Generate a professional, ATS-friendly cover letter tailored to this resume
-2. Provide a matchScore (0-100) and missingSkills list
-
-Return STRICTLY JSON ONLY with fields:
-{
-  "coverLetter": "...",
-  "matchScore": 0-100,
-  "missingSkills": []
-}
-`;
-
-    const openai = new OpenAI({
-      apiKey: process.env.FIREWORKS_API_KEY,
-      baseURL: "https://api.fireworks.ai/inference/v1",
-    });
-
-    const response = await openai.chat.completions.create({
-      model: "accounts/fireworks/models/llama-v3p3-70b-instruct",
-      messages: [
-        {
-          role: "system",
-          content: "You are a career assistant. Always respond with strict JSON.",
-        },
-        { role: "user", content: prompt },
-      ],
-      temperature: 0.1,
-    });
-
-    const aiText = response.choices[0].message.content;
-
-    const jsonMatch = aiText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      console.error("❌ RAW AI RESPONSE:", aiText);
-      throw new Error("Invalid AI response format");
+    if (!resumeText || !resumeText.trim()) {
+      return res.status(400).json({ error: "Could not extract text from the resume file." });
     }
 
-    const parsedAI = JSON.parse(jsonMatch[0]);
+    // Resilient scoring: scanJobDescription uses OpenRouter with a local
+    // keyword/experience fallback, so it never hard-fails on AI errors.
+    const skills = extractSkillsFromText(resumeText);
+    const pseudoUser = {
+      baseResumeText: resumeText,
+      onboardingDetails: { skillsList: skills },
+    };
+    const scan = await scanJobDescription(pseudoUser, jobDesc);
+
+    const coverLetter = await generateCoverLetter(resumeText, jobDesc, scan.matchedSkills);
 
     res.json({
-      resumeText,   // raw extracted text (useful for debugging)
-      ...parsedAI,
+      resumeText,
+      parsedResume: { skills, summary: (resumeText || "").slice(0, 200) },
+      coverLetter,
+      matchScore: Number(scan.overallScore) || 0,
+      missingSkills: Array.isArray(scan.missingSkills) ? scan.missingSkills : [],
     });
-
   } catch (err) {
-    console.error("❌ ANALYZE ERROR:", {
-      message: err.message,
-      response: err.response?.data,
-    });
-
-    res.status(err.response?.status || 500).json({
-      error: "AI Analysis failed",
-      details: err.response?.data || err.message,
-    });
+    console.error("❌ ANALYZE ERROR:", err.message);
+    res.status(500).json({ error: "AI Analysis failed", details: err.message });
   }
 };

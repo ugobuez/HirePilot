@@ -34,16 +34,15 @@ const upload = multer({
 
 export async function extractResumeText(file) {
   try {
-    const { mimetype, path } = file;
+    const { mimetype, path, buffer } = file;
 
     console.log("📄 Extracting file:", mimetype);
     console.log("📂 File path:", path);
 
-    if (!path) {
-      throw new Error("File path not found");
+    const fileBuffer = buffer || (path ? fs.readFileSync(path) : null);
+    if (!fileBuffer) {
+      throw new Error("Could not read uploaded file (no buffer or path)");
     }
-
-    const fileBuffer = fs.readFileSync(path);
 
     // DOCX
     if (
