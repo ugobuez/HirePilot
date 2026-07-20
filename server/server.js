@@ -1,3 +1,7 @@
+import dns from "dns";
+
+// Force Node to use public DNS servers
+dns.setServers(["8.8.8.8", "8.8.4.4"]);
 import express from "express";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
@@ -25,7 +29,7 @@ const app = express();
 const allowedOrigins = [
   "https://hire-pilot-job.vercel.app",
   "http://localhost:3000",
-  "https://hirepilot-qskd.onrender.com",
+  "https://hirepilot-jber.onrender.com",
 ];
 
 app.use(
