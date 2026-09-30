@@ -1,4 +1,4 @@
-import pdf from "pdf-parse-fixed";
+import { extractPdfText } from "../services/pdfText.js";
 import Resume from "../models/Resume.js";
 
 export const uploadResume = async (req, res) => {
@@ -10,17 +10,22 @@ export const uploadResume = async (req, res) => {
     }
 
     // ✅ FIXED PDF PARSER
-    const data = await pdf(req.file.buffer);
-
-    console.log("📄 Extracted text length:", data.text.length);
+    const { text, extractor } = await extractPdfText(req.file.buffer);
+    if (!text || text.trim().length < 20) {
+      return res.status(422).json({
+        error: "Could not read any text from this PDF — it may be a scan or image-only file.",
+        extractor,
+      });
+    }
 
     const resume = await Resume.create({
-      content: data.text,
+      content: text,
     });
 
     res.json({
       message: "Resume uploaded",
       resumeId: resume._id,
+      extractor,
     });
   } catch (err) {
     console.error("❌ Upload error:", err);

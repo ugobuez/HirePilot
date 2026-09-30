@@ -1,0 +1,8 @@
+{
+  "testEnvironment": "node",
+  "setupFiles": ["<rootDir>/tests/setup-env.js"],
+  "testMatch": ["<rootDir>/tests/**/*.test.js"],
+  "transform": {},
+  "testTimeout": 60000,
+  "verbose": true
+}

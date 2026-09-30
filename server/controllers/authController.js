@@ -5,6 +5,8 @@ import {
   extractProfileFromResume,
   generateProfessionalSummary,
 } from "../middleware/services/profileExtractionService.js";
+import { scrubError } from "../services/llmRouter.js";
+import logger from "../utils/logger.js";
 
 // POST /api/v1/auth/signup
 export const signup = async (req, res) => {
@@ -195,12 +197,24 @@ export const extractResume = async (req, res) => {
       return res.status(400).json({ error: "Could not extract text from the resume." });
     }
 
-    const profile = await extractProfileFromResume(resumeText);
-    const summary = profile.summary || (await generateProfessionalSummary(profile));
+    // fastParse ON (default): local parsing only, well under 2s, zero LLM calls.
+    // fastParse OFF        : local parsing + exactly one LLM enrichment call.
+    const fastParse = String(req.query?.fastParse ?? "true").toLowerCase() !== "false";
 
-    res.json({ resumeText, profile: { ...profile, summary } });
+    const { profile, meta } = await extractProfileFromResume(resumeText, {
+      fastParse,
+      userId: req.user?._id?.toString(),
+    });
+    // Local formatter: this used to be a second LLM call per upload.
+    const summary = generateProfessionalSummary(profile);
+
+    res.json({
+      resumeText,
+      profile: { ...profile, summary },
+      parsing: { fastParse, ...meta },
+    });
   } catch (err) {
-    console.error("❌ extract-resume error:", err.message);
+    logger.error("extract-resume failed", { err: scrubError(err?.message) });
     res.status(500).json({ error: err.message });
   }
 };

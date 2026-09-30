@@ -4,7 +4,14 @@
   "type": "module",
   "main": "server.js",
   "scripts": {
-    "dev": "nodemon server.js"
+    "dev": "nodemon server.js",
+    "start": "node server.js",
+    "seed": "node scripts/seed.js",
+    "llm:check": "node scripts/llm-check.js",
+    "smoke": "node scripts/smoke.js",
+    "db:check": "node scripts/db-check.js",
+    "boot:check": "node scripts/boot-check.js",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand --forceExit"
   },
   "keywords": [],
   "author": "",

@@ -1,7 +1,7 @@
 import multer from "multer";
-import pdfParse from "pdf-parse-fixed";
 import mammoth from "mammoth";
 import fs from "fs";
+import { extractPdfText } from "../services/pdfText.js";
 // ============================
 // Multer config
 // ============================
@@ -57,8 +57,8 @@ export async function extractResumeText(file) {
 
     // PDF
     if (mimetype === "application/pdf") {
-      const result = await pdfParse(fileBuffer);
-      return result.text;
+      const { text } = await extractPdfText(fileBuffer);
+      return text;
     }
 
     // TXT / RTF
