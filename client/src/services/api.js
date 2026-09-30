@@ -1,9 +1,8 @@
-const API_BASE = process.env.REACT_APP_API_URL || "http://localhost:6900";
+const API_BASE = process.env.REACT_APP_API_URL || "https://hirepilot-jber.onrender.com";
 
 // ========================================================
 // Auth Service
 // ========================================================
-
 const getHeaders = (includeAuth = true) => {
   const headers = { "Content-Type": "application/json" };
   if (includeAuth) {
@@ -90,8 +89,8 @@ export const authService = {
 };
 
 // ========================================================
-// Application Service
-// ========================================================
+// Application Servic
+// ======================================================
 
 export const applicationService = {
   getAll: async (statusFilter = "") => {
@@ -297,6 +296,10 @@ export const jobService = {
 // ========================================================
 // Legacy Services
 // ========================================================
+
+
+
+
 
 export const uploadResume = async (file) => {
   const formData = new FormData();
