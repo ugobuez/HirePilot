@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import {
   Upload,
   FileText,
-  Search,
+
   CheckCircle,
   XCircle,
   AlertTriangle,
@@ -12,8 +12,7 @@ import {
   Zap,
   Shield,
   Eye,
-  PenTool,
-  Sliders,
+
   BarChart3,
   BookOpen,
   Briefcase,
