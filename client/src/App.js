@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./index.css";
+
 import {
   Search,
   FileText,
@@ -13,7 +14,6 @@ import {
   ArrowRight,
   Zap,
   Globe,
-  Clock,
   Target,
   Sparkles,
   ChevronRight,
@@ -21,6 +21,7 @@ import {
   Pause,
   Briefcase,
 } from "lucide-react";
+
 import BrandLogo from "./components/BrandLogo";
 import LoginForm from "./components/LoginForm";
 import OnboardingForm from "./components/OnboardingForm";
