@@ -33,7 +33,7 @@ import AutomationPanel from "./components/AutomationPanel";
 import ResumeIntelligence from "./components/ResumeIntelligence";
 import { authService } from "./services/api";
 
-// ============================================
+// =========================================
 // Progress Ring Component
 // ============================================
 function ProgressRing({ percentage, size = 120, strokeWidth = 8 }) {
@@ -92,7 +92,7 @@ function ProgressRing({ percentage, size = 120, strokeWidth = 8 }) {
 // Live Console Component
 // ============================================
 function LiveConsole() {
-  const [lines, setLines] = useState([
+  const [lines] = useState([
     { text: "[SCAN] Analyzing job: Senior React Developer at TechCorp", type: "info" },
     { text: "[SCAN] Base match score: 48% — 5 missing keywords detected", type: "info" },
     { text: "[TAILOR] Rewriting resume summary for React/TypeScript alignment...", type: "tailor" },
@@ -140,7 +140,7 @@ function LiveConsole() {
 }
 
 // ============================================
-// Honesty Filter Component
+// Honesty Filter Componen
 // ============================================
 function HonestyFilter() {
   const [mode, setMode] = useState("safe");
