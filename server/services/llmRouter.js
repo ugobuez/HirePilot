@@ -12,7 +12,7 @@ import logger from "../utils/logger.js";
  * Invariants enforced here:
  *  1. Every provider attempt is logged structurally (provider, model, status,
  *     error type, latency, redacted error). API keys and prompt/resume text
- *     are never logged — provider messages pass through `scrubError` first.
+ *     are never logged provider messages pass through `scrubError` first.
  *  2. `health().mode` reflects the *measured* state from the startup self-test,
  *     not merely the presence of an API key.
  *  3. Model ids are checked against each provider's live model list at boot;
