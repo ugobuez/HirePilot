@@ -35,14 +35,24 @@ const tidyExtracted = (raw) =>
  */
 
 let pdfParseModule;
+let pdfParseLoaded = false;
 const loadPdfParse = async () => {
-  if (pdfParseModule !== undefined) return pdfParseModule;
+  if (pdfParseLoaded) return pdfParseModule;
   try {
-    const mod = await import("pdf-parse");
-    pdfParseModule = mod.default || mod;
+    // pdf-parse-fixed is the deliberately pinned extractor: it exposes the
+    // classic callable default API (pdfParse(pathOrBuffer) -> { text }). The
+    // upstream `pdf-parse` v2 replaced that with a PDFParse class and no
+    // callable default, which throws "mod is not a function" here. Support
+    // both shapes regardless, so a future dependency bump cannot break boot.
+    const mod = await import("pdf-parse-fixed");
+    pdfParseModule = {
+      callable: typeof mod.default === "function" ? mod.default : typeof mod === "function" ? mod : null,
+      PDFParse: typeof mod.PDFParse === "function" ? mod.PDFParse : null,
+    };
   } catch {
     pdfParseModule = null;
   }
+  pdfParseLoaded = true;
   return pdfParseModule;
 };
 
@@ -56,8 +66,22 @@ const extractWithPdfParse = async (buffer) => {
   const tmp = `${os.tmpdir()}/hirepilot-parse-${Date.now()}-${Math.random().toString(36).slice(2)}.pdf`;
   try {
     await fs.promises.writeFile(tmp, buffer);
-    const out = await mod(tmp);
-    return { available: true, text: tidyExtracted(out?.text) };
+    let text = "";
+    if (mod.PDFParse) {
+      // pdf-parse v2 class API. Prefer the on-disk bytes (matches the v1
+      // "parse from file" behaviour that dodges the XRef bug).
+      const parser = new mod.PDFParse({ url: tmp });
+      const out = await parser.getText();
+      text = out?.text || "";
+      if (typeof parser.destroy === "function") await parser.destroy();
+    } else if (mod.callable) {
+      // pdf-parse v1 callable API.
+      const out = await mod.callable(tmp);
+      text = out?.text || "";
+    } else {
+      return { available: false, text: "", error: "pdf-parse_unknown_export" };
+    }
+    return { available: true, text: tidyExtracted(text) };
   } catch (err) {
     return { available: false, text: "", error: err.message };
   } finally {

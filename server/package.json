@@ -17,6 +17,9 @@
   "author": "",
   "license": "ISC",
   "description": "",
+  "engines": {
+    "node": ">=20.11.0"
+  },
   "dependencies": {
     "apify-client": "^2.22.3",
     "axios": "^1.13.6",
@@ -35,10 +38,18 @@
     "openai": "^6.34.0",
     "pdf-parse": "^2.4.5",
     "pdf-parse-fixed": "^1.1.1",
+    "pdfkit": "^0.17.2",
+    "docx": "^9.11.0",
+    "playwright": "^1.64.1",
     "playwright-extra": "^4.3.6",
-    "puppeteer-extra-plugin-stealth": "^2.11.2"
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
-    "nodemon": "^3.1.14"
+    "@jest/globals": "^30.5.2",
+    "jest": "^30.5.2",
+    "mongodb-memory-server": "^11.3.0",
+    "nodemon": "^3.1.14",
+    "supertest": "^7.3.1"
   }
 }

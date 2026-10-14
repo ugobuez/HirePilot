@@ -50,7 +50,7 @@ const EMAIL_RE = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i;
 const PHONE_RE = /(\+?\d[\d\s().-]{7,}\d)/;
 const URL_RE = /(https?:\/\/[^\s,;)]+|www\.[^\s,;)]+|(?:linkedin\.com|github\.com)\/[^\s,;)]+)/gi;
 const DATE_RANGE_RE =
-  /((?:[A-Z][a-z]{2,8}\.?\s+)?(?:19|20)\d{2})\s*(?:-|–|—|to|until)\s*((?:[A-Z][a-z]{2,8}\.?\s+)?(?:19|20)\d{2}|present|current|now|ongoing)/i;
+  /((?:[A-Z][a-z]{2,8}\.?\s+)?(?:19|20)\d{2})\s*(?:-|–|—|to|until)?\s*((?:[A-Z][a-z]{2,8}\.?\s+)?(?:19|20)\d{2}|present|current|now|ongoing)/i;
 
 /** Parse a date range into display + ISO-ish parts. */
 export const parseDateRange = (line) => {

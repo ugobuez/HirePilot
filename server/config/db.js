@@ -7,25 +7,42 @@ import logger from "../utils/logger.js";
 
 let memoryServer = null;
 
+// Keep the embedded MongoDB binary compatible with the existing 7.0 database.
+const MONGO_BINARY_VERSION = process.env.MONGOMS_VERSION || "7.0.14";
+
 /** Persistent dev database lives here; so does the running-instance marker. */
 const devDbPath = () => path.resolve(process.cwd(), "..", ".data", "mongo");
-const instanceFile = (dbPath = devDbPath()) => path.join(dbPath, "hirepilot-instance.json");
+const instanceFile = (dbPath = devDbPath()) =>
+  path.join(dbPath, "hirepilot-instance.json");
 
 const writeInstanceFile = (uri) => {
   const dbPath = devDbPath();
+
   try {
     fs.mkdirSync(dbPath, { recursive: true });
     fs.writeFileSync(
       instanceFile(dbPath),
-      JSON.stringify({ uri, pid: process.pid, port: Number(new URL(uri).port) || 27017, startedAt: new Date().toISOString() }, null, 2)
+      JSON.stringify(
+        {
+          uri,
+          pid: process.pid,
+          port: Number(new URL(uri).port) || 27017,
+          startedAt: new Date().toISOString(),
+        },
+        null,
+        2
+      )
     );
   } catch (err) {
-    logger.warn("could not record the running mongo instance", { err: err.message });
+    logger.warn("could not record the running mongo instance", {
+      err: err.message,
+    });
   }
 };
 
 const removeOwnInstanceFile = () => {
   const file = instanceFile();
+
   try {
     const info = JSON.parse(fs.readFileSync(file, "utf8"));
     if (info.pid === process.pid) fs.unlinkSync(file);
@@ -36,9 +53,8 @@ const removeOwnInstanceFile = () => {
 
 /**
  * Connection info for a dev mongod that is already running on our dbPath, or
- * null. This is what lets `npm run seed` reuse the server's database instead of
- * starting a second mongod on the same data directory (which then fails on the
- * lock file and, on some machines, corrupts the journal).
+ * null. This lets npm run seed reuse the server's database instead of starting
+ * a second mongod on the same data directory.
  */
 export const readRunningInstance = () => {
   try {
@@ -51,11 +67,12 @@ export const readRunningInstance = () => {
 
 const pidAlive = (pid) => {
   if (!Number.isInteger(pid) || pid <= 0) return false;
+
   try {
     process.kill(pid, 0);
     return true;
   } catch (err) {
-    // EPERM = the process exists but belongs to another user.
+    // EPERM means the process exists but belongs to another user.
     return err.code === "EPERM";
   }
 };
@@ -63,33 +80,47 @@ const pidAlive = (pid) => {
 const portAlive = (port) =>
   new Promise((resolve) => {
     if (!Number.isInteger(port) || port <= 0) return resolve(false);
-    const socket = net.createConnection({ port, host: "127.0.0.1" });
+
+    const socket = net.createConnection({
+      port,
+      host: "127.0.0.1",
+    });
+
     const done = (value) => {
       socket.destroy();
       resolve(value);
     };
+
     socket.setTimeout(1500, () => done(false));
     socket.once("connect", () => done(true));
     socket.once("error", () => done(false));
   });
 
-/** A recorded instance is only reusable while its process or port is alive. */
-export const verifyRunningInstance = async (info = readRunningInstance()) => {
+/** A recorded instance is reusable while its process or port is alive. */
+export const verifyRunningInstance = async (
+  info = readRunningInstance()
+) => {
   if (!info) return null;
   if (pidAlive(info.pid)) return info;
+
   return (await portAlive(info.port)) ? info : null;
 };
 
 /**
- * Delete lock files left behind by a mongod that died without cleaning up.
- * A no-op while a live instance is listening, so a running database is never
- * touched.
+ * Delete lock files left by a mongod that died without cleaning up.
+ * Never touch the database directory while a live instance is detected.
  */
-export const clearStaleMongoLocks = async (dbPath = devDbPath(), probe = verifyRunningInstance) => {
+export const clearStaleMongoLocks = async (
+  dbPath = devDbPath(),
+  probe = verifyRunningInstance
+) => {
   if (await probe()) return { cleared: [], kept: true };
+
   const cleared = [];
+
   for (const name of ["mongod.lock", "WiredTiger.lock"]) {
     const file = path.join(dbPath, name);
+
     try {
       if (fs.existsSync(file)) {
         fs.unlinkSync(file);
@@ -99,46 +130,68 @@ export const clearStaleMongoLocks = async (dbPath = devDbPath(), probe = verifyR
       /* another process may be starting; let mongod report the real problem */
     }
   }
+
   return { cleared, kept: false };
 };
 
 /**
- * Attach to an already-running dev database. Returns null when there is none or
- * when the recorded instance is unreachable (stale marker), so the caller can
- * fall back to starting its own mongod.
+ * Attach to an already-running dev database.
+ * Returns null when there is none or the recorded instance is unreachable.
  */
 export const connectToRunningInstance = async () => {
   const instance = await verifyRunningInstance();
   if (!instance) return null;
+
   try {
     mongoose.set("strictQuery", true);
-    await mongoose.connect(instance.uri, { serverSelectionTimeoutMS: 3000 });
-    logger.info("database connected", { db: "running dev instance" });
+
+    await mongoose.connect(instance.uri, {
+      serverSelectionTimeoutMS: 3000,
+    });
+
+    logger.info("database connected", {
+      db: "running dev instance",
+    });
+
     return mongoose.connection;
   } catch (err) {
-    logger.warn("recorded mongo instance is unreachable, starting a new one", { err: err.message });
+    logger.warn(
+      "recorded mongo instance is unreachable, starting a new one",
+      { err: err.message }
+    );
+
     removeOwnInstanceFile();
     await clearStaleMongoLocks();
+
     return null;
   }
 };
 
 /**
  * Resolve a Mongo connection string.
- * - production: MONGO_URI is required (Atlas free tier)
- * - development/test with no MONGO_URI: spin up an embedded MongoDB so
- *   `npm run dev` and `npm test` work with zero external services.
+ * - production: MONGO_URI is required (Atlas or another MongoDB deployment)
+ * - development/test without MONGO_URI: launch embedded MongoDB
  */
 const resolveUri = async () => {
   if (config.mongoUri) return config.mongoUri;
+
   if (config.isProd) {
     throw new Error("MONGO_URI is required in production");
   }
 
   const { MongoMemoryServer } = await import("mongodb-memory-server");
 
+  // Ephemeral database for tests or explicitly requested memory-only mode.
   if (config.isTest || config.mongoMemoryEphemeral) {
-    memoryServer = await MongoMemoryServer.create({ instance: { dbName: "hirepilot" } });
+    memoryServer = await MongoMemoryServer.create({
+      binary: {
+        version: MONGO_BINARY_VERSION,
+      },
+      instance: {
+        dbName: "hirepilot",
+      },
+    });
+
     return memoryServer.getUri("hirepilot");
   }
 
@@ -146,33 +199,48 @@ const resolveUri = async () => {
   const dbPath = devDbPath();
   fs.mkdirSync(dbPath, { recursive: true });
 
-  // A second process (npm run seed, scripts/db-check) must never start a second
-  // mongod on the same data directory: reuse the one that is already running.
+  // Reuse a running instance instead of opening the same data directory twice.
   const running = await verifyRunningInstance();
   if (running) return running.uri;
 
-  // Nobody is listening: clear lock files left behind by a crash, otherwise
-  // mongod refuses to start on this directory.
+  // Clear stale lock files only after checking for an existing instance.
   const { cleared } = await clearStaleMongoLocks(dbPath);
-  if (cleared.length) logger.info("cleared stale mongo lock files", { files: cleared });
+
+  if (cleared.length) {
+    logger.info("cleared stale mongo lock files", {
+      files: cleared,
+    });
+  }
 
   memoryServer = await MongoMemoryServer.create({
-    instance: { dbName: "hirepilot", dbPath },
+    binary: {
+      version: MONGO_BINARY_VERSION,
+    },
+    instance: {
+      dbName: "hirepilot",
+      dbPath,
+    },
     instanceInfoDir: dbPath,
   });
+
   const uri = memoryServer.getUri("hirepilot");
   writeInstanceFile(uri);
+
   return uri;
 };
 
 export const connectDB = async () => {
-  if (mongoose.connection.readyState === 1) return mongoose.connection;
+  if (mongoose.connection.readyState === 1) {
+    return mongoose.connection;
+  }
 
   let uri;
+
   try {
     uri = await resolveUri();
   } catch (err) {
     const msg = String(err?.message || err);
+
     if (/lock|Unable to lock|already in use/i.test(msg)) {
       throw new Error(
         [
@@ -184,32 +252,45 @@ export const connectDB = async () => {
         ].join("\n")
       );
     }
+
     if (/download|binary|EACCES|ENOTFOUND|checksum/i.test(msg)) {
       throw new Error(
         [
-          "Could not start the embedded MongoDB (first run downloads a small binary).",
-          "Network or proxy blocked the download. Options:",
-          "  1) Re-run with network access so the binary can be cached under ./.cache/mongodb-binaries",
-          "  2) Point MONGO_URI at a local mongod or a free MongoDB Atlas cluster",
+          "Could not start the embedded MongoDB (first run downloads a binary).",
+          "Network or proxy may have blocked the download.",
+          "  1) Re-run with network access so the binary can be cached",
+          "  2) Point MONGO_URI at a local mongod or MongoDB Atlas cluster",
           `Original error: ${msg}`,
         ].join("\n")
       );
     }
+
     throw err;
   }
 
   mongoose.set("strictQuery", true);
-  await mongoose.connect(uri, { serverSelectionTimeoutMS: 10000 });
-  logger.info("database connected", { db: config.isProd ? "atlas" : "embedded" });
+
+  await mongoose.connect(uri, {
+    serverSelectionTimeoutMS: 10000,
+  });
+
+  logger.info("database connected", {
+    db: config.isProd ? "atlas" : "embedded",
+  });
+
   return mongoose.connection;
 };
 
 export const disconnectDB = async () => {
-  if (mongoose.connection.readyState !== 0) await mongoose.disconnect();
+  if (mongoose.connection.readyState !== 0) {
+    await mongoose.disconnect();
+  }
+
   if (memoryServer) {
     await memoryServer.stop();
     memoryServer = null;
   }
+
   // Only remove the marker if this process is the one that wrote it.
   removeOwnInstanceFile();
 };

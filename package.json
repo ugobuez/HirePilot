@@ -1,6 +1,19 @@
 {
-  "dependencies": {
-    "bcryptjs": "^3.0.3",
-    "jsonwebtoken": "^9.0.3"
+  "name": "hirepilot",
+  "version": "1.0.0",
+  "private": true,
+  "description": "HirePilot — AI job-application copilot (Express API + React client, deployed as separate Render services).",
+  "engines": {
+    "node": ">=20.11.0"
+  },
+  "scripts": {
+    "render:build": "npm ci --prefix server && npm ci --prefix client && npm run build --prefix client",
+    "render:start": "npm start --prefix server",
+    "build": "npm run build --prefix client",
+    "start": "npm start --prefix server",
+    "dev": "npm run dev --prefix server",
+    "install:all": "npm ci --prefix server && npm ci --prefix client",
+    "test": "npm test --prefix server"
   }
 }
+
