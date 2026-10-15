@@ -3,6 +3,13 @@ import { Form, Button, Spinner, Alert, Card, Badge } from "react-bootstrap";
 import { UploadCloud, FileText, Send } from "lucide-react";
 import axios from "axios";
 
+// Production builds read REACT_APP_API_URL (baked in at build time from
+// client/.env.production). The fallback is the real Render API so a build that
+// somehow ships without the env var still talks to the deployed backend —
+// never localhost.
+const API_BASE =
+  process.env.REACT_APP_API_URL || "https://hirepilot-jber.onrender.com";
+
 function JobForm() {
   const [jobDesc, setJobDesc] = useState("");
   const [resume, setResume] = useState(null);
@@ -28,7 +35,7 @@ function JobForm() {
       formData.append("jobDesc", jobDesc);
 
       const res = await axios.post(
-        "http://localhost:6900/api/analyze",
+        `${API_BASE}/api/analyze`,
         formData
       );
 

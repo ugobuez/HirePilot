@@ -117,6 +117,21 @@ app.get("/", (req, res) => {
   res.json({ name: "HirePilot API", status: "running", health: "/api/health" });
 });
 
+/**
+ * Liveness probe — answers "is the Node process up and serving HTTP?".
+ * Deliberately dependency-free: it never touches Mongo or any provider, so a
+ * transient DB blip can never make the process look dead to the orchestrator.
+ * Render/Vercel/K8s can point a liveness check here without risking restarts
+ * on a recoverable upstream outage.
+ */
+app.get("/api/health/live", (req, res) => {
+  res.status(200).json({
+    status: "alive",
+    timestamp: new Date().toISOString(),
+    uptimeSeconds: Math.round(process.uptime()),
+  });
+});
+
 /** Honest health: reports what is actually true, including degraded states. */
 app.get("/api/health", (req, res) => {
   const dbState =
@@ -150,6 +165,25 @@ app.get("/api/health", (req, res) => {
       llmEnrichment: config.flags.llmEnrichment,
       maxBatchSize: config.pipeline.maxBatchSize,
     },
+  });
+});
+
+/**
+ * Readiness probe — answers "can this instance serve database-backed traffic?".
+ * Returns 200 only when Mongo is actually connected; 503 otherwise so an
+ * orchestrator holds traffic back instead of routing it to a half-alive node.
+ * Never echoes the connection URI, credentials, or stack traces. Optional
+ * external job providers are intentionally NOT part of readiness.
+ */
+app.get("/api/health/ready", (req, res) => {
+  const dbState =
+    ["disconnected", "connected", "connecting", "disconnecting"][mongoose.connection.readyState] ||
+    "unknown";
+  const ready = dbState === "connected";
+  res.status(ready ? 200 : 503).json({
+    status: ready ? "ready" : "not-ready",
+    timestamp: new Date().toISOString(),
+    database: dbState,
   });
 });
 

@@ -13,8 +13,24 @@ import { SOURCE_REGISTRY } from "./jobSources.js";
 import { dedupeJobs } from "../../utils/dedupe.js";
 import { getCached, setCached } from "../../utils/jobCache.js";
 import { filterJobs, daysSincePosted, PRIORITY } from "./jobNormalize.js";
+import config from "../../config/index.js";
 
 const CACHE_TTL = 3 * 60 * 60 * 1000; // 3 hours
+
+/**
+ * Sources that should actually be scraped for this run.
+ *
+ * - Under test we never call the public internet: the config layer flips every
+ *   FLAG_SOURCE_* to false for NODE_ENV=test, so we return an empty set and the
+ *   aggregation pipeline still runs (dedupe/filter/sort) over zero sources.
+ * - In production we honour each FLAG_SOURCE_* toggle; a source with no flag
+ *   (unflagged) defaults to enabled so existing behaviour is preserved.
+ */
+const enabledSources = () => {
+  if (config.isTest) return [];
+  return SOURCE_REGISTRY.filter((s) => config.flags.sources[s.key] !== false);
+};
+
 
 const normalizeFilters = (opts = {}) => ({
   query: opts.query || opts.q || null,
@@ -49,10 +65,18 @@ export const scrapeJobs = async (opts = {}) => {
     return cached;
   }
 
-  console.log("🚀 HirePilot aggregation engine — pulling from", SOURCE_REGISTRY.length, "sources…");
+  const registry = enabledSources();
+  if (!registry.length) {
+    // No sources enabled (tests, or every FLAG_SOURCE_* off): skip network
+    // entirely and cache the empty result like any other response.
+    setCached(cacheKey, [], CACHE_TTL);
+    return [];
+  }
+
+  console.log("🚀 HirePilot aggregation engine — pulling from", registry.length, "sources…");
 
   const settled = await Promise.allSettled(
-    SOURCE_REGISTRY.map(async (source) => {
+    registry.map(async (source) => {
       const jobs = await source.scrape();
       return { jobs: Array.isArray(jobs) ? jobs : [], source: source.name };
     })
@@ -82,7 +106,7 @@ export const scrapeJobs = async (opts = {}) => {
   );
 
   console.log(
-    `✅ Aggregated ${jobs.length} unique jobs from ${successCount}/${SOURCE_REGISTRY.length} active sources (deduped)`
+    `✅ Aggregated ${jobs.length} unique jobs from ${successCount}/${registry.length} active sources (deduped)`
   );
 
   setCached(cacheKey, jobs, CACHE_TTL);
@@ -90,20 +114,25 @@ export const scrapeJobs = async (opts = {}) => {
 };
 
 /**
- * Lightweight source registry metadata — no network calls.
+ * Lightweight source registry metadata — no network calls. Each entry reports
+ * whether its FLAG_SOURCE_* toggle is currently on, so the dashboard can show
+ * disabled sources honestly instead of implying they all run.
  */
-export const getSourcesStatus = () => ({
-  total: SOURCE_REGISTRY.length,
-  sources: SOURCE_REGISTRY.map((s) => ({
-    key: s.key,
-    name: s.name,
-    priority: s.priority,
-    category: s.category,
-    startup: !!s.startup,
-    bigTech: !!s.bigTech,
-    africa: !!s.africa,
-  })),
-});
+export const getSourcesStatus = () => {
+  const registry = enabledSources();
+  return {
+    total: registry.length,
+    sources: registry.map((s) => ({
+      key: s.key,
+      name: s.name,
+      priority: s.priority,
+      category: s.category,
+      startup: !!s.startup,
+      bigTech: !!s.bigTech,
+      africa: !!s.africa,
+    })),
+  };
+};
 
 // ── Backwards-compatible helpers ──
 export const filterNewGrad = (jobs) =>

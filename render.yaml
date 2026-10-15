@@ -19,6 +19,9 @@ services:
     rootDir: server
     buildCommand: npm ci
     startCommand: npm start
+    # /api/health reports 503 while Mongo is disconnected, so Render will not
+    # route traffic to an instance whose database is not ready. /api/health/live
+    # (process liveness) and /api/health/ready (DB readiness) also exist.
     healthCheckPath: /api/health
     autoDeployTrigger: commit
     envVars:
@@ -47,6 +50,12 @@ services:
       - key: ADZUNA_API_KEY
         sync: false
       - key: JSEARCH_API_KEY
+        sync: false
+      # Optional: comma-separated allow-list of browser origins for credentialed
+      # CORS. The built-in default already allows the canonical Vercel frontend
+      # (https://hire-pilot-job.vercel.app). Set this only to add extra domains;
+      # never use "*" (the API sends credentials).
+      - key: CORS_ORIGINS
         sync: false
 
   # --------------------------------------------------------------- CLIENT ----

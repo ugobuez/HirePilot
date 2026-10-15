@@ -99,21 +99,39 @@ cd ..
 
 ### 2. Environment Configuration
 
-Create a `.env` file in the root directory:
+Copy `.env.example` to `.env` at the repo root — it documents every variable
+with defaults. Minimum for local dev:
 
 ```env
-# MongoDB Connection String
+# MongoDB Connection String (production; dev uses an embedded Mongo)
 MONGO_URI=mongodb+srv://<username>:<password>@cluster0.xxxxx.mongodb.net/hirepilot?retryWrites=true&w=majority
 
-# OpenRouter API Key (optional - has free fallback built-in)
+# LLM provider key (optional — the app runs local-only with none set)
 OPENROUTER_API_KEY=sk-or-v1-your-key-here
 
 # Server Port (optional - defaults to 6900)
 PORT=6900
 
-# JWT Secret (optional - has built-in fallback)
+# JWT Secret (required in production; dev mints an ephemeral one)
 JWT_SECRET=your-super-secret-jwt-key-change-me
 ```
+
+#### Where each variable lives (production)
+
+| Where | Variables | Notes |
+| --- | --- | --- |
+| **Render (API service)** | `JWT_SECRET`, `ENCRYPTION_KEY`, `MONGO_URI`, `GROQ_API_KEY`/`OPENROUTER_API_KEY`/`GEMINI_API_KEY`, `CORS_ORIGINS`, `FLAG_*`, `LLM_*`, `APPLY_*`, `SENTRY_DSN`, `METRICS_TOKEN` | All **secrets are backend-only** — never ship them to the browser. `.env` at the repo root is git-ignored; Render reads its dashboard env vars (see `render.yaml`). |
+| **Vercel (frontend)** | `REACT_APP_API_URL` (public API base URL, e.g. `https://hirepilot-jber.onrender.com`) | The only frontend var. It is public by design — `REACT_APP_*` values are baked into the JS bundle. `client/.env.production` already carries the correct value, so a plain `npm run build` targets the right backend. |
+
+Production URLs:
+
+- API (Render): `https://hirepilot-jber.onrender.com` — health probes:
+  `GET /api/health/live` (liveness), `GET /api/health/ready` (DB readiness),
+  `GET /api/health` (combined; Render `healthCheckPath`)
+- Frontend (Vercel): `https://hire-pilot-job.vercel.app`
+
+The complete route contract (every endpoint, auth, inputs, responses) lives in
+[`ENDPOINTS.md`](./ENDPOINTS.md).
 
 ### 3. Start the Application
 
@@ -329,6 +347,12 @@ Job Found
 ```
 
 ## 📊 API Reference
+
+> **Full inventory:** [`ENDPOINTS.md`](./ENDPOINTS.md) lists every registered
+> route (health, auth, applications, jobs, automation, AI, scraping) with auth
+> requirements, inputs, success/error responses, rate limits, and which routes
+> are covered by the automated suite in `server/tests/`. The tables below are a
+> quick-start subset.
 
 ### Authentication (`/api/v1/auth`)
 

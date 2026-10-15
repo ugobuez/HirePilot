@@ -198,6 +198,11 @@ const cfg = {
   sentryDsn: env.SENTRY_DSN || null,
   metricsToken: env.METRICS_TOKEN || null,
 
+  // Allowed browser origins for credentialed cross-origin requests. This is an
+  // explicit allow-list — never "*" — because the API also issues
+  // Authorization headers and credentials:true. The default covers local dev
+  // and the canonical production frontend on Vercel. Override with CORS_ORIGINS
+  // (comma-separated) to add preview/other confirmed domains without a rebuild.
   corsOrigins: (
     env.CORS_ORIGINS ||
     "http://localhost:3000,https://hire-pilot-job.vercel.app"
@@ -211,6 +216,15 @@ const cfg = {
 // saved fixtures / mocked HTTP instead.
 if (isTest) {
   for (const k of Object.keys(cfg.flags.sources)) cfg.flags.sources[k] = false;
+  // No real LLM keys: tests mock fetch and set their own fake keys, and the
+  // documented invariant is that the suite never calls an LLM API. A local
+  // .env must not leak real credentials into the router.
+  for (const p of ["groq", "openrouter", "gemini"]) {
+    if (cfg.providers[p]) cfg.providers[p].apiKey = null;
+  }
+  // Pin the CORS allow-list so preflight assertions are hermetic instead of
+  // depending on whatever CORS_ORIGINS the developer's local .env sets.
+  cfg.corsOrigins = ["http://localhost:3000", "https://hire-pilot-job.vercel.app"];
 }
 
 export default cfg;

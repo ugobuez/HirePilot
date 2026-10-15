@@ -39,8 +39,11 @@ const JobList = () => {
   const [skillFilter, setSkillFilter] = useState("");
   const [selectedJobs, setSelectedJobs] = useState([]);
 
-  // ✅ Uses the configured API base (local by default, overridable via REACT_APP_API_URL)
-  const API_BASE = process.env.REACT_APP_API_URL || "http://localhost:6900";
+  // Production builds read REACT_APP_API_URL (baked in at build time). The
+  // fallback is the real Render API so a production bundle never targets
+  // localhost; local development sets REACT_APP_API_URL explicitly.
+  const API_BASE =
+    process.env.REACT_APP_API_URL || "https://hirepilot-jber.onrender.com";
   const fetchJobs = async (pageNum) => {
     try {
       setLoading(true);

@@ -294,12 +294,12 @@ export const jobService = {
 };
 
 // ========================================================
-// Legacy Services
+// Standalone helpers (route-mapped, currently unused by the UI)
 // ========================================================
-
-
-
-
+// NOTE: a previous `matchJobs` helper pointed at POST /api/match-jobs, a route
+// that does not exist in the Express app. It was removed to keep the frontend
+// honest. Job matching now happens inside the scored job endpoints
+// (/api/jobs/sections and /api/jobs/for-user) rather than a dedicated matcher.
 
 export const uploadResume = async (file) => {
   const formData = new FormData();
@@ -308,16 +308,6 @@ export const uploadResume = async (file) => {
     method: "POST",
     body: formData,
   });
-  return res.json();
-};
-
-export const matchJobs = async (resumeId) => {
-  const res = await fetch(`${API_BASE}/api/match-jobs`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ resumeId }),
-  });
-  if (!res.ok) throw new Error("Match jobs failed");
   return res.json();
 };
 
