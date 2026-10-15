@@ -26,7 +26,7 @@ services:
     autoDeployTrigger: commit
     envVars:
       - key: NODE_VERSION
-        value: "20.11.0"
+        value: "22"
       - key: NODE_ENV
         value: production
       # config/index.js throws on boot if any of these are missing in prod.
@@ -68,7 +68,7 @@ services:
     autoDeployTrigger: commit
     envVars:
       - key: NODE_VERSION
-        value: "20.11.0"
+        value: "22"
       # Points the built React bundle at the API service's public URL.
       # Set this to the hirepilot-api URL shown on its Render page.
       - key: REACT_APP_API_URL

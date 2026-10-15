@@ -18,7 +18,7 @@
   "license": "ISC",
   "description": "",
   "engines": {
-    "node": ">=20.11.0"
+    "node": ">=22.0.0"
   },
   "dependencies": {
     "apify-client": "^2.22.3",
